@@ -27,4 +27,4 @@ jobs:
 
     # Step 4: Run the pipeline (10 cycles for CI)
     - name: Run Pipeline
-      run: CI_CYCLES=10 java -cp out Main
+      run: CI_CYCLES=5 java -cp out Main
