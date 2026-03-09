@@ -28,11 +28,41 @@ public class Main {
         System.out.println("CI_CYCLES=" + ciCyclesEnv + "  maxCycles=" + maxCycles);
 
         while (true) {
-            double voltage = sensor.generateVoltage();
-            double sampled = sampler.sample(voltage);
-            double temperature = transformer.voltageToTemperature(sampled);
-            api.send(temperature);
-            database.save(temperature);
+            try {
+                double voltage = sensor.generateVoltage();
+                double sampled = sampler.sample(voltage);
+
+                double temperature;
+                try {
+                    temperature = transformer.voltageToTemperature(sampled);
+                } catch (Exception e) {
+                    System.out.println("Transformer failure detected. Restarting transformer...");
+                    transformer = new Transformer();   // restart component
+                    Thread.sleep(3000);                // recovery window
+                    continue;                          // skip this cycle
+                } 
+                try {
+                    api.send(temperature);
+                } catch (Exception e) { // Retry API send
+                    System.out.println("API send failed. Retrying...");
+                    try { api.send(temperature); } catch (Exception ignored) {
+                        System.out.println("API send failed again. Degrading service.");
+                    }
+                }
+
+                try {
+                    database.save(temperature);
+                } catch (Exception e) {
+                    System.out.println("DB save failed. Retrying...");
+                    try { database.save(temperature); } catch (Exception ignored) { // Retry DB save 
+                        System.out.println("DB save failed again. Continuing without persistence.");
+                    }
+                }
+
+            } catch (Exception e) {
+                System.out.println("Unexpected pipeline error: " + e.getMessage());
+            }
+
 
             Thread.sleep(sleepTime);
 
