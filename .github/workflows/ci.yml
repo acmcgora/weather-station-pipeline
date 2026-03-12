@@ -25,6 +25,6 @@ jobs:
     - name: Compile
       run: javac -d out $(find src -name "*.java")
 
-    # Step 4: Run the pipeline (10 cycles for CI)
+    # Step 4: Run the pipeline (15 cycles for CI)
     - name: Run Pipeline
-      run: CI_CYCLES=10 java -cp out Main
+      run: CI_CYCLES=15 java -cp out Main
