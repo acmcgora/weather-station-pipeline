@@ -3,11 +3,11 @@ The Pipeline runs like this:
 Sensor → Sampler → Transformer → REST API → Database
 
 | Module      | Description |                                              
-| Sensor      | Generates simulated voltage readings from the environment |
-| Sampler     | Samples the sensor voltage values                         |
-| Transformer | Converts voltage values to temperature readings           |
-| REST API    | Receives temperature data and simulates an API endpoint   |
-| Database    | Stores the processed temperature values                   |
+| Sensor      | Generates simulated voltage readings from the environment 
+| Sampler     | Samples the sensor voltage values                         
+| Transformer | Converts voltage values to temperature readings           
+| REST API    | Receives temperature data and simulates an API endpoint   
+| Database    | Stores the processed temperature values                   
 
 
 #JSON input
