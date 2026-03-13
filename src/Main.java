@@ -1,6 +1,5 @@
 import api.RestAPI;
 import database.Database;
-import sampler.Sampler;
 import sensor.Sensor;
 import transformer.Transformer;
 
@@ -9,7 +8,6 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
 
         Sensor sensor = new Sensor();
-        Sampler sampler = new Sampler();
         Transformer transformer = new Transformer();
         RestAPI api = new RestAPI();
         Database database = new Database();
