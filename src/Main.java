@@ -30,7 +30,7 @@ public class Main {
         while (true) {
             try {
                 double voltage = sensor.generateVoltage();
-                double sampled = sampler.sample(voltage);
+                double sampled = sendToNodeSampler(voltage);
 
                 double temperature;
                 try {
