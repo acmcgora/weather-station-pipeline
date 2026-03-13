@@ -21,7 +21,7 @@ Sensor → Sampler → Transformer → REST API → Database
 {
   "sensorId": "sensor-001",
   "timestamp": "2026-03-12T10:15:30Z",
-  "temperatureC": 62.4
+  "sampledVoltage": 62.4
 }
 
 The Sensor generates raw voltage data, the Sampler collects the readings, the Transformer converts voltage into temperature values, the REST API simulates receiving processed data, and the Database stores the final results. Keeping these separate can help mitigate the damage in the event of a fault.
