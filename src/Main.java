@@ -3,8 +3,41 @@ import database.Database;
 import sensor.Sensor;
 import transformer.Transformer;
 
-public class Main {
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
 
+
+public class Main {
+    public static double sendToNodeSampler(double voltage) throws Exception {
+            URL url = new URL("http://localhost:8080/sample");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+        
+            String json = String.format(
+                "{\"sensorId\":\"sensor-001\",\"timestamp\":\"%d\",\"voltage\":%f}",
+                System.currentTimeMillis(),
+                voltage
+            );
+        
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes());
+            }
+        
+            Scanner scanner = new Scanner(conn.getInputStream());
+            String response = scanner.useDelimiter("\\A").next();
+            scanner.close();
+        
+            // Extract sampledVoltage from JSON (simple parsing)
+            String key = "\"sampledVoltage\":";
+            int start = response.indexOf(key) + key.length();
+            int end = response.indexOf("}", start);
+            return Double.parseDouble(response.substring(start, end));
+        }
     public static void main(String[] args) throws InterruptedException {
 
         Sensor sensor = new Sensor();
