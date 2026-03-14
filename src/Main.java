@@ -32,7 +32,6 @@ public class Main {
             String response = scanner.useDelimiter("\\A").next();
             scanner.close();
         
-            // Extract sampledVoltage from JSON (simple parsing)
             String key = "\"sampledVoltage\":";
             int start = response.indexOf(key) + key.length();
             int end = response.indexOf("}", start);
