@@ -3,39 +3,40 @@ import database.Database;
 import sensor.Sensor;
 import transformer.Transformer;
 
-import org.json.JSONObject;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
+
 
 public class Main {
-
     public static double sendToNodeSampler(double voltage) throws Exception {
-        // Local run only — CI will skip this
-        java.net.URL url = new java.net.URL("http://localhost:8080/sample");
-        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setDoOutput(true);
-
-        String json = String.format(
+            URL url = new URL("http://localhost:8080/sample");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+        
+            String json = String.format(
                 "{\"sensorId\":\"sensor-001\",\"timestamp\":\"%d\",\"voltage\":%f}",
                 System.currentTimeMillis(),
                 voltage
-        );
-
-        try (java.io.OutputStream os = conn.getOutputStream()) {
-            os.write(json.getBytes());
+            );
+        
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes());
+            }
+        
+            Scanner scanner = new Scanner(conn.getInputStream());
+            String response = scanner.useDelimiter("\\A").next();
+            scanner.close();
+        
+            String key = "\"sampledVoltage\":";
+            int start = response.indexOf(key) + key.length();
+            int end = response.indexOf("}", start);
+            return Double.parseDouble(response.substring(start, end));
         }
-
-        java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream());
-        String response = scanner.useDelimiter("\\A").next();
-        scanner.close();
-
-        String key = "\"sampledVoltage\":";
-        int start = response.indexOf(key) + key.length();
-        int end = response.indexOf("}", start);
-        return Double.parseDouble(response.substring(start, end));
-    }
-
     public static void main(String[] args) throws InterruptedException {
 
         Sensor sensor = new Sensor();
@@ -45,63 +46,51 @@ public class Main {
 
         System.out.println("Weather Station Pipeline Started...");
 
-        // Detect CI environment
+        // Check for CI environment variable
         String ciCyclesEnv = System.getenv("CI_CYCLES");
         int maxCycles = ciCyclesEnv != null ? Integer.parseInt(ciCyclesEnv) : -1;
 
         int cycles = 0;
-        int sleepTime = (maxCycles > 0) ? 200 : 1000; // faster in CI
+
+        // Use shorter sleep for CI
+        int sleepTime = (maxCycles > 0) ? 200 : 1000; // 200ms per iteration in CI, 1s locally
 
         System.out.println("CI_CYCLES=" + ciCyclesEnv + "  maxCycles=" + maxCycles);
 
         while (true) {
             try {
                 double voltage = sensor.generateVoltage();
-
-                // CI-safe sampler
-                double sampled;
-                if (maxCycles > 0) {
-                    sampled = voltage;
+                 double sampled;
+                if (maxCycles > 0) { // CI run detected
+                    sampled = voltage; // skip Node.js call
                     System.out.println("CI detected — skipping Node.js sampler.");
                 } else {
-                    sampled = sendToNodeSampler(voltage);
+                    sampled = sendToNodeSampler(voltage); // local run
                 }
 
-                // Transformer with recovery
                 double temperature;
                 try {
                     temperature = transformer.voltageToTemperature(sampled);
                 } catch (Exception e) {
                     System.out.println("Transformer failure detected. Restarting transformer...");
-                    transformer = new Transformer();
-                    Thread.sleep(3000);
-                    continue;
-                }
-
-                // JSON output for logs
-                JSONObject jsonLog = new JSONObject();
-                jsonLog.put("sensorId", "sensor-001");
-                jsonLog.put("voltage", voltage);
-                jsonLog.put("sampledVoltage", sampled);
-                jsonLog.put("temperatureC", temperature);
-                System.out.println(jsonLog.toString());
-
-                // API send with retry
+                    transformer = new Transformer();   // restart component
+                    Thread.sleep(3000);                // recovery window
+                    continue;                          // skip this cycle
+                } 
                 try {
                     api.send(temperature);
-                } catch (Exception e) {
+                } catch (Exception e) { // Retry API send
                     System.out.println("API send failed. Retrying...");
                     try { api.send(temperature); } catch (Exception ignored) {
                         System.out.println("API send failed again. Degrading service.");
                     }
                 }
 
-                // Database save with retry
                 try {
                     database.save(temperature);
                 } catch (Exception e) {
                     System.out.println("DB save failed. Retrying...");
-                    try { database.save(temperature); } catch (Exception ignored) {
+                    try { database.save(temperature); } catch (Exception ignored) { // Retry DB save 
                         System.out.println("DB save failed again. Continuing without persistence.");
                     }
                 }
@@ -109,6 +98,7 @@ public class Main {
             } catch (Exception e) {
                 System.out.println("Unexpected pipeline error: " + e.getMessage());
             }
+
 
             Thread.sleep(sleepTime);
 
@@ -120,3 +110,4 @@ public class Main {
         }
     }
 }
+
