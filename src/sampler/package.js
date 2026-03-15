@@ -4,5 +4,8 @@
   "main": "app.js",
   "dependencies": {
     "express": "^4.18.2"
-  }
+  },
+  "scripts": {
+  "test": "jest"
+}
 }
