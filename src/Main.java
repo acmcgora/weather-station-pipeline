@@ -3,8 +3,12 @@ import database.Database;
 import sensor.Sensor;
 import transformer.Transformer;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+
 public class Main {
 
+    // Node.js Sampler call (skipped in CI)
     public static double sendToNodeSampler(double voltage) throws Exception {
         java.net.URL url = new java.net.URL("http://localhost:8080/sample");
         java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -14,8 +18,9 @@ public class Main {
         conn.setDoOutput(true);
 
         String json = String.format(
-                "{\"sensorId\":\"sensor-001\",\"timestamp\":\"%d\",\"voltage\":%f}",
-                System.currentTimeMillis(),
+                "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
+                "sensor-001",
+                DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
                 voltage
         );
 
@@ -55,13 +60,16 @@ public class Main {
             try {
                 double voltage = sensor.generateVoltage();
 
+                // Use ISO 8601 timestamp
+                String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+
                 // CI-safe sampler
                 double sampled;
                 if (maxCycles > 0) {
-                    sampled = voltage;
+                    sampled = voltage; // skip Node.js in CI
                     System.out.println("CI detected — skipping Node.js sampler.");
                 } else {
-                    sampled = sendToNodeSampler(voltage);
+                    sampled = sendToNodeSampler(voltage); // local run
                 }
 
                 // Transformer with recovery
@@ -75,12 +83,19 @@ public class Main {
                     continue;
                 }
 
-                // Create JSON string manually
-                String jsonLog = String.format(
-                        "{\"sensorId\":\"%s\",\"voltage\":%.2f,\"sampledVoltage\":%.2f,\"temperatureC\":%.2f}",
-                        "sensor-001", voltage, sampled, temperature
+                // JSON Input log
+                String jsonInput = String.format(
+                        "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
+                        "sensor-001", timestamp, voltage
                 );
-                System.out.println(jsonLog);
+                System.out.println("#JSON input " + jsonInput);
+
+                // JSON Output log
+                String jsonOutput = String.format(
+                        "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"sampledVoltage\": %.2f }",
+                        "sensor-001", timestamp, sampled
+                );
+                System.out.println("#JSON output " + jsonOutput);
 
                 // API send with retry
                 try {
