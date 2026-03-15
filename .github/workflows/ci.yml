@@ -29,6 +29,8 @@ jobs:
     - name: Run Pipeline
       run: CI_CYCLES=15 java -cp out Main
 
+
+    #Node.js testing
     - name: Set up Node.js 18
       if: matrix.language == 'node'
       uses: actions/setup-node@v3
