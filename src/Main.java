@@ -60,7 +60,13 @@ public class Main {
         while (true) {
             try {
                 double voltage = sensor.generateVoltage();
-                double sampled = sendToNodeSampler(voltage);
+                 double sampled;
+                if (maxCycles > 0) { // CI run detected
+                    sampled = voltage; // skip Node.js call
+                    System.out.println("CI detected — skipping Node.js sampler.");
+                } else {
+                    sampled = sendToNodeSampler(voltage); // local run
+                }
 
                 double temperature;
                 try {
