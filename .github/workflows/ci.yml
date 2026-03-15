@@ -1,4 +1,4 @@
-name: Java Weather Station CI
+name: Weather Station CI
 
 on:
   push:
@@ -6,41 +6,43 @@ on:
   pull_request:
 
 jobs:
-  build-and-run:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the repository
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      # Java pipeline setup
+      # Step 2: Set up Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    # Step 2: Set up Java 17
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      # Step 3: Compile all Java files
+      - name: Compile Java
+        run: javac -d out $(find src -name "*.java")
 
-    # Step 3: Compile all Java files
-    - name: Compile
-      run: javac -d out $(find src -name "*.java")
+      # Step 4: Run Java pipeline for CI
+      - name: Run Java Weather Station Pipeline
+        run: CI_CYCLES=15 java -cp out Main
 
-    # Step 4: Run the pipeline (15 cycles for CI)
-    - name: Run Pipeline
-      run: CI_CYCLES=15 java -cp out Main
+      # Node.js Sampler setup
+      # Step 5: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
+      # Step 6: Install Sampler dependencies
+      - name: Install Node.js dependencies
+        working-directory: src/sampler
+        run: npm install
 
-    #Node.js testing
-    - name: Set up Node.js 18
-      if: matrix.language == 'node'
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Install Node.js dependencies
-      if: matrix.language == 'node'
-      run: npm install
-
-    - name: Run Sampler Unit Tests
-      if: matrix.language == 'node'
-      run: npm test
+      # Step 7: Run Sampler unit tests
+      - name: Run Sampler unit tests
+        working-directory: src/sampler
+        run: npx jest
