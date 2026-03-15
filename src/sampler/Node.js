@@ -16,6 +16,13 @@ app.post('/sample', (req, res) => {
   res.json(sampled);
 });
 
-app.listen(port, () => {
-  console.log(`Sampler running on port ${port}`);
-});
+//app.listen(port, () => {
+//  console.log(`Sampler running on port ${port}`);
+//});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Sampler running on port ${port}`);
+  });
+}
+
+module.exports = app;
