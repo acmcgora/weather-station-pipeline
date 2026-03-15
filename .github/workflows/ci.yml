@@ -28,3 +28,17 @@ jobs:
     # Step 4: Run the pipeline (15 cycles for CI)
     - name: Run Pipeline
       run: CI_CYCLES=15 java -cp out Main
+
+    - name: Set up Node.js 18
+      if: matrix.language == 'node'
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Node.js dependencies
+      if: matrix.language == 'node'
+      run: npm install
+
+    - name: Run Sampler Unit Tests
+      if: matrix.language == 'node'
+      run: npm test
