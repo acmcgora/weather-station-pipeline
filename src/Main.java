@@ -3,40 +3,36 @@ import database.Database;
 import sensor.Sensor;
 import transformer.Transformer;
 
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Scanner;
-
-
 public class Main {
+
     public static double sendToNodeSampler(double voltage) throws Exception {
-            URL url = new URL("http://localhost:8080/sample");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
-        
-            String json = String.format(
+        java.net.URL url = new java.net.URL("http://localhost:8080/sample");
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+
+        String json = String.format(
                 "{\"sensorId\":\"sensor-001\",\"timestamp\":\"%d\",\"voltage\":%f}",
                 System.currentTimeMillis(),
                 voltage
-            );
-        
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(json.getBytes());
-            }
-        
-            Scanner scanner = new Scanner(conn.getInputStream());
-            String response = scanner.useDelimiter("\\A").next();
-            scanner.close();
-        
-            String key = "\"sampledVoltage\":";
-            int start = response.indexOf(key) + key.length();
-            int end = response.indexOf("}", start);
-            return Double.parseDouble(response.substring(start, end));
+        );
+
+        try (java.io.OutputStream os = conn.getOutputStream()) {
+            os.write(json.getBytes());
         }
+
+        java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream());
+        String response = scanner.useDelimiter("\\A").next();
+        scanner.close();
+
+        String key = "\"sampledVoltage\":";
+        int start = response.indexOf(key) + key.length();
+        int end = response.indexOf("}", start);
+        return Double.parseDouble(response.substring(start, end));
+    }
+
     public static void main(String[] args) throws InterruptedException {
 
         Sensor sensor = new Sensor();
@@ -46,51 +42,62 @@ public class Main {
 
         System.out.println("Weather Station Pipeline Started...");
 
-        // Check for CI environment variable
+        // Detect CI environment
         String ciCyclesEnv = System.getenv("CI_CYCLES");
         int maxCycles = ciCyclesEnv != null ? Integer.parseInt(ciCyclesEnv) : -1;
 
         int cycles = 0;
-
-        // Use shorter sleep for CI
-        int sleepTime = (maxCycles > 0) ? 200 : 1000; // 200ms per iteration in CI, 1s locally
+        int sleepTime = (maxCycles > 0) ? 200 : 1000; // faster in CI
 
         System.out.println("CI_CYCLES=" + ciCyclesEnv + "  maxCycles=" + maxCycles);
 
         while (true) {
             try {
                 double voltage = sensor.generateVoltage();
-                 double sampled;
-                if (maxCycles > 0) { // CI run detected
-                    sampled = voltage; // skip Node.js call
+
+                // CI-safe sampler
+                double sampled;
+                if (maxCycles > 0) {
+                    sampled = voltage;
                     System.out.println("CI detected — skipping Node.js sampler.");
                 } else {
-                    sampled = sendToNodeSampler(voltage); // local run
+                    sampled = sendToNodeSampler(voltage);
                 }
 
+                // Transformer with recovery
                 double temperature;
                 try {
                     temperature = transformer.voltageToTemperature(sampled);
                 } catch (Exception e) {
                     System.out.println("Transformer failure detected. Restarting transformer...");
-                    transformer = new Transformer();   // restart component
-                    Thread.sleep(3000);                // recovery window
-                    continue;                          // skip this cycle
-                } 
+                    transformer = new Transformer();
+                    Thread.sleep(3000);
+                    continue;
+                }
+
+                // Create JSON string manually
+                String jsonLog = String.format(
+                        "{\"sensorId\":\"%s\",\"voltage\":%.2f,\"sampledVoltage\":%.2f,\"temperatureC\":%.2f}",
+                        "sensor-001", voltage, sampled, temperature
+                );
+                System.out.println(jsonLog);
+
+                // API send with retry
                 try {
                     api.send(temperature);
-                } catch (Exception e) { // Retry API send
+                } catch (Exception e) {
                     System.out.println("API send failed. Retrying...");
                     try { api.send(temperature); } catch (Exception ignored) {
                         System.out.println("API send failed again. Degrading service.");
                     }
                 }
 
+                // Database save with retry
                 try {
                     database.save(temperature);
                 } catch (Exception e) {
                     System.out.println("DB save failed. Retrying...");
-                    try { database.save(temperature); } catch (Exception ignored) { // Retry DB save 
+                    try { database.save(temperature); } catch (Exception ignored) {
                         System.out.println("DB save failed again. Continuing without persistence.");
                     }
                 }
@@ -98,7 +105,6 @@ public class Main {
             } catch (Exception e) {
                 System.out.println("Unexpected pipeline error: " + e.getMessage());
             }
-
 
             Thread.sleep(sleepTime);
 
@@ -110,4 +116,3 @@ public class Main {
         }
     }
 }
-
