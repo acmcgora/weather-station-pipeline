@@ -8,7 +8,6 @@ import java.time.format.DateTimeFormatter;
 
 public class Main {
 
-    // Node.js Sampler call (skipped in CI)
     public static double sendToNodeSampler(double voltage) throws Exception {
         java.net.URL url = new java.net.URL("http://localhost:8080/sample");
         java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -47,35 +46,36 @@ public class Main {
 
         System.out.println("Weather Station Pipeline Started...");
 
-        // Detect CI environment
         String ciCyclesEnv = System.getenv("CI_CYCLES");
         int maxCycles = ciCyclesEnv != null ? Integer.parseInt(ciCyclesEnv) : -1;
 
         int cycles = 0;
-        int sleepTime = (maxCycles > 0) ? 200 : 1000; // faster in CI
+        int sleepTime = (maxCycles > 0) ? 200 : 1000;
 
         System.out.println("CI_CYCLES=" + ciCyclesEnv + "  maxCycles=" + maxCycles);
 
         while (true) {
             try {
+                // 🔹 Sensor reading
                 double voltage = sensor.generateVoltage();
+                System.out.println("Sensor voltage: " + voltage + " V");
 
-                // Use ISO 8601 timestamp
                 String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 
-                // CI-safe sampler
+                // 🔹 Sampler
                 double sampled;
                 if (maxCycles > 0) {
-                    sampled = voltage; // skip Node.js in CI
+                    sampled = voltage;
                     System.out.println("CI detected — skipping Node.js sampler.");
                 } else {
-                    sampled = sendToNodeSampler(voltage); // local run
+                    sampled = sendToNodeSampler(voltage);
                 }
 
-                // Transformer with recovery
+                // 🔹 Transformer
                 double temperature;
                 try {
                     temperature = transformer.voltageToTemperature(sampled);
+                    System.out.println("Temperature (C): " + temperature);
                 } catch (Exception e) {
                     System.out.println("Transformer failure detected. Restarting transformer...");
                     transformer = new Transformer();
@@ -83,21 +83,21 @@ public class Main {
                     continue;
                 }
 
-                // JSON Input log
+                // 🔹 JSON input
                 String jsonInput = String.format(
                         "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
                         "sensor-001", timestamp, voltage
                 );
                 System.out.println("#JSON input " + jsonInput);
 
-                // JSON Output log
+                // 🔹 JSON output
                 String jsonOutput = String.format(
                         "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"sampledVoltage\": %.2f }",
-                        "sensor-001", timestamp, temperature
+                        "sensor-001", timestamp, sampled
                 );
                 System.out.println("#JSON output " + jsonOutput);
 
-                // API send with retry
+                // 🔹 API
                 try {
                     api.send(temperature);
                 } catch (Exception e) {
@@ -107,7 +107,7 @@ public class Main {
                     }
                 }
 
-                // Database save with retry
+                // 🔹 Database
                 try {
                     database.save(temperature);
                 } catch (Exception e) {
