@@ -92,7 +92,7 @@ public class Main {
 
                 // JSON Output log
                 String jsonOutput = String.format(
-                        "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"Temperature\": %.2f }",
+                        "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"sampledVoltage\": %.2f }",
                         "sensor-001", timestamp, temperature
                 );
                 System.out.println("#JSON output " + jsonOutput);
