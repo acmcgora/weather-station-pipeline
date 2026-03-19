@@ -56,13 +56,13 @@ public class Main {
 
         while (true) {
             try {
-                // 🔹 Sensor reading
+                //  Sensor reading
                 double voltage = sensor.generateVoltage();
                 System.out.println("Sensor voltage: " + voltage + " V");
 
                 String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 
-                // 🔹 Sampler
+                //  Sampler
                 double sampled;
                 if (maxCycles > 0) {
                     sampled = voltage;
@@ -71,14 +71,14 @@ public class Main {
                     sampled = sendToNodeSampler(voltage);
                 }
 
-                // 🔹 Transformer
+                //  Transformer
                 String temperatureJSON;
                 double temperature;
                 try {
                     temperatureJSON = transformer.voltageToTemperatureJSON(sampled);
                     System.out.println("Temperature JSON: " + temperatureJSON);
 
-                    // Extract temperature for API/DB
+                    // Extract temperature for API/DB and removes any unnecessary sybols and other characters
                     temperature = Double.parseDouble(
                             temperatureJSON.replaceAll("[^0-9.]", "")
                     );
@@ -86,25 +86,25 @@ public class Main {
                 } catch (Exception e) {
                     System.out.println("Transformer failure detected. Restarting transformer...");
                     transformer = new Transformer();
-                    Thread.sleep(1000);
+                    Thread.sleep(1000); //Added a shorter rest to speed up the retries
                     continue;
                 }
 
-                // 🔹 JSON input
+                //  JSON input
                 String jsonInput = String.format(
                         "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
                         "sensor-001", timestamp, voltage
                 );
                 System.out.println("#JSON input " + jsonInput);
 
-                // 🔹 JSON output
+                //  JSON output
                 String jsonOutput = String.format(
                         "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"sampledVoltage\": %.2f }",
                         "sensor-001", timestamp, sampled
                 );
                 System.out.println("#JSON output " + jsonOutput);
 
-                // 🔹 API
+                //  API
                 try {
                     api.send(temperature);
                 } catch (Exception e) {
@@ -114,7 +114,7 @@ public class Main {
                     }
                 }
 
-                // 🔹 Database
+                //  Database
                 try {
                     database.save(temperature);
                 } catch (Exception e) {
