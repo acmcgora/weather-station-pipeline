@@ -8,10 +8,9 @@ Sampler	Samples the sensor voltage values
 Transformer	Converts voltage values to temperature readings
 REST API	Receives temperature data and simulates an API endpoint
 Database	Stores the processed temperature values
+
 Transformer API
-
 Endpoint:
-
 POST http://localhost:5001/transform
 
 Input JSON Example:
@@ -28,7 +27,7 @@ It converts the voltage to a temperature using a simple linear formula:
 temperature (C) = (voltage / 5.0) * 100
 
 The result is returned in JSON format, making it easy for the REST API or Java pipeline
-Using JSON over HTTP allows the Transformer to run as a separate microservice, improving modifiability and integration flexibility.
+Using JSON over HTTP allows the Transformer to run as a separate microservice, improving modifiability and integration.
 
 Sample JSON Flow
 JSON Input (to Sampler):
@@ -49,4 +48,4 @@ The Transformer converts voltage into temperature values.
 The REST API simulates receiving processed data.
 The Database stores the final results.
 
-Keeping these modules separate helps mitigate the impact of faults in one module and allows independent testing and maintenance.
+Keeping these modules separate helps lessen the impact of faults in one module and allows independent testing and maintenance.
