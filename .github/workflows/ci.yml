@@ -16,57 +16,66 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         
-      # Java pipeline setup
+      # Step 2: Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Compile Java files
+      # Step 3: Compile Java
       - name: Compile Java
         run: javac -d out $(find src -name "*.java")
 
-      # Node.js Sampler setup
+      # Step 4: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
+      # Step 5: Install Node.js dependencies
       - name: Install Node.js dependencies
         working-directory: src/sampler
         run: npm install
 
-      - name: Run Node.js Sampler unit tests
+      # Step 6: Start Node.js sampler in background
+      - name: Start Node.js sampler
         working-directory: src/sampler
-        run: npx jest
+        run: |
+          nohup npx jest &  # if you have tests
+          nohup node index.js &  # replace with your sampler entrypoint
+          sleep 3  # wait for server to start
 
-      # Python Flask Transformer setup
+      # Step 7: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
+      # Step 8: Install Python dependencies
       - name: Install Python dependencies
         working-directory: src/transformer
         run: |
           python -m pip install --upgrade pip
           pip install flask pytest
 
-      # Start Flask Transformer in background
+      # Step 9: Start Flask Transformer in background
       - name: Start Flask Transformer
         working-directory: src/transformer
         run: |
-          nohup python Flaskapp.py &
-          sleep 3  # give it time to start
+          nohup python transformer_app.py &  # replace with your Flask entrypoint
+          sleep 3  # wait for server to start
 
-      # Run Java pipeline pointing to Flask service
+      # Step 10: Run Java pipeline
       - name: Run Java Weather Station Pipeline
-        env:
-          CI_CYCLES: 5
-        run: java -cp out Main
+        run: CI_CYCLES=5 java -cp out Main
 
-      # Run Transformer Python unit tests
+      # Step 11: Run Node.js unit tests
+      - name: Run Sampler unit tests
+        working-directory: src/sampler
+        run: npx jest
+
+      # Step 12: Run Python Transformer unit tests
       - name: Run Transformer unit tests
         working-directory: tests
-        run: pytest
+        run: pytest transformer.test.py
