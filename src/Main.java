@@ -111,7 +111,7 @@ public class Main {
                 System.out.println("#JSON input { \"sensorId\": \"sensor-001\", \"timestamp\": \"" 
                         + timestamp + "\", \"voltage\": " + voltage + " }");
                 System.out.println("#JSON output { \"sensorId\": \"sensor-001\", \"timestamp\": \"" 
-                        + timestamp + "\", \"sampledVoltage\": " + temperature + " }");
+                        + timestamp + "\", \"Temperature\": " + temperature + " }");
 
                 // 🔹 API & Database
                 try { api.send(temperature); } catch (Exception e) { System.out.println("API send failed."); }
