@@ -78,4 +78,4 @@ jobs:
       # Step 12: Run Python Transformer unit tests
       - name: Run Transformer unit tests
         working-directory: tests
-        run: pytest transformer.test.py
+        run: pytest
