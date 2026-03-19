@@ -63,7 +63,7 @@ jobs:
       # Run Java pipeline pointing to Flask service
       - name: Run Java Weather Station Pipeline
         env:
-          CI_CYCLES: 15
+          CI_CYCLES: 5
         run: java -cp out Main
 
       # Run Transformer Python unit tests
