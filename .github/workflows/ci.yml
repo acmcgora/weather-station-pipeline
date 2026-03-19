@@ -43,7 +43,7 @@ jobs:
         working-directory: src/sampler
         run: |
           nohup npx jest &  # if you have tests
-          nohup node package.js &  # replace with your sampler entrypoint
+          nohup node Node.js &  # replace with your sampler entrypoint
           sleep 3  # wait for server to start
 
       # Step 7: Set up Python
