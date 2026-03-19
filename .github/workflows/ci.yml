@@ -15,54 +15,54 @@ jobs:
       # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
-        
-      # Java pipeline setup
-      # Step 2: Set up Java 17
+
+      #  Java pipeline setup 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Step 3: Compile all Java files
       - name: Compile Java
         run: javac -d out $(find src -name "*.java")
 
-      # Step 4: Run Java pipeline for CI
-      - name: Run Java Weather Station Pipeline
-        run: CI_CYCLES=15 java -cp out Main
-
-      # Node.js Sampler setup
-      # Step 5: Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      # Step 6: Install Sampler dependencies
-      - name: Install Node.js dependencies
-        working-directory: src/sampler
-        run: npm install
-
-      # Step 7: Run Sampler unit tests
-      - name: Run Sampler unit tests
-        working-directory: src/sampler
-        run: npx jest
-      #Python Flask Transformer setup
-      # Step 8: Set up Python
+      #  Python/Flask setup 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Step 9: Install Python dependencies
       - name: Install Python dependencies
         working-directory: src/transformer
         run: |
           python -m pip install --upgrade pip
           pip install flask pytest
 
-      # Step 10: Run Transformer unit tests
+      # Step 3: Start Flask Transformer in background
+      - name: Start Flask Transformer
+        working-directory: src/transformer
+        run: |
+          nohup python Flaskapp.py &
+
+      # Run Java Pipeline 
+      - name: Run Java Weather Station Pipeline
+        run: CI_CYCLES=15 java -cp out Main
+
+      #  Python Unit Tests 
       - name: Run Transformer unit tests
         working-directory: tests
-        run: pytest
+        run: pytest -v transformer.test.py
+
+      #  Node.js Sampler setup 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Node.js dependencies
+        working-directory: src/sampler
+        run: npm install
+
+      - name: Run Sampler unit tests
+        working-directory: src/sampler
+        run: npx jest
