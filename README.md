@@ -27,7 +27,7 @@ The Transformer receives a sampled voltage value from the Sampler.
 It converts the voltage to a temperature using a simple linear formula:
 temperature (C) = (voltage / 5.0) * 100
 
-The result is returned in JSON format, making it easy for the REST API or Java pipeline to consume.
+The result is returned in JSON format, making it easy for the REST API or Java pipeline
 Using JSON over HTTP allows the Transformer to run as a separate microservice, improving modifiability and integration flexibility.
 
 Sample JSON Flow
