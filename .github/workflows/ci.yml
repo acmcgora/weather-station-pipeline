@@ -63,4 +63,4 @@ jobs:
       # Step 10: Run Transformer unit tests
       - name: Run Transformer unit tests
         working-directory: tests
-        run: pytest transformer.test.py
+        run: pytest
