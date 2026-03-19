@@ -1,13 +1,13 @@
 import api.RestAPI;
 import database.Database;
 import sensor.Sensor;
-import transformer.Transformer;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 
 public class Main {
 
+    // 🔹 Send voltage to Node.js Sampler
     public static double sendToNodeSampler(double voltage) throws Exception {
         java.net.URL url = new java.net.URL("http://localhost:8080/sample");
         java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -37,10 +37,35 @@ public class Main {
         return Double.parseDouble(response.substring(start, end));
     }
 
+    // 🔹 Send voltage to Flask Transformer
+    public static double sendToTransformer(double voltage) throws Exception {
+        java.net.URL url = new java.net.URL("http://localhost:5001/transform");
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+
+        String json = String.format("{ \"voltage\": %.2f }", voltage);
+
+        try (java.io.OutputStream os = conn.getOutputStream()) {
+            os.write(json.getBytes());
+        }
+
+        java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream());
+        String response = scanner.useDelimiter("\\A").next();
+        scanner.close();
+
+        String key = "\"temperature\":";
+        int start = response.indexOf(key) + key.length();
+        int end = response.indexOf("}", start);
+
+        return Double.parseDouble(response.substring(start, end));
+    }
+
     public static void main(String[] args) throws InterruptedException {
 
         Sensor sensor = new Sensor();
-        Transformer transformer = new Transformer();
         RestAPI api = new RestAPI();
         Database database = new Database();
 
@@ -56,13 +81,13 @@ public class Main {
 
         while (true) {
             try {
-                //  Sensor reading
+                // 🔹 Sensor reading
                 double voltage = sensor.generateVoltage();
                 System.out.println("Sensor voltage: " + voltage + " V");
 
                 String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 
-                //  Sampler
+                // 🔹 Sampler
                 double sampled;
                 if (maxCycles > 0) {
                     sampled = voltage;
@@ -71,40 +96,39 @@ public class Main {
                     sampled = sendToNodeSampler(voltage);
                 }
 
-                //  Transformer
-                String temperatureJSON;
+                // 🔹 Transformer (Flask service)
                 double temperature;
                 try {
-                    temperatureJSON = transformer.voltageToTemperatureJSON(sampled);
-                    System.out.println("Temperature JSON: " + temperatureJSON);
+                    if (maxCycles > 0) {
+                        // CI fallback (Flask not running in GitHub Actions)
+                        temperature = (sampled / 5.0) * 100.0;
+                        System.out.println("CI detected — using local transformer.");
+                    } else {
+                        temperature = sendToTransformer(sampled);
+                    }
 
-                    // Extract temperature for API/DB and removes any unnecessary sybols and other characters
-                    temperature = Double.parseDouble(
-                            temperatureJSON.replaceAll("[^0-9.]", "")
-                    );
+                    System.out.println("Temperature (C): " + temperature);
 
                 } catch (Exception e) {
-                    System.out.println("Transformer failure detected. Restarting transformer...");
-                    transformer = new Transformer();
-                    Thread.sleep(1000); //Added a shorter rest to speed up the retries
+                    System.out.println("Transformer service failed. Skipping cycle.");
                     continue;
                 }
 
-                //  JSON input
+                // 🔹 JSON input
                 String jsonInput = String.format(
                         "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
                         "sensor-001", timestamp, voltage
                 );
                 System.out.println("#JSON input " + jsonInput);
 
-                //  JSON output
+                // 🔹 JSON output
                 String jsonOutput = String.format(
                         "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"sampledVoltage\": %.2f }",
                         "sensor-001", timestamp, sampled
                 );
                 System.out.println("#JSON output " + jsonOutput);
 
-                //  API
+                // 🔹 API
                 try {
                     api.send(temperature);
                 } catch (Exception e) {
@@ -114,7 +138,7 @@ public class Main {
                     }
                 }
 
-                //  Database
+                // 🔹 Database
                 try {
                     database.save(temperature);
                 } catch (Exception e) {
