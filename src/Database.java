@@ -9,7 +9,8 @@ public class Database {
 
     public void save(double temperature) {
         records.add(temperature);
-        System.out.println("Database has stored value: " + temperature);
+        // Print with 1 decimal point
+        System.out.println("Database has stored value: " + String.format("%.1f", temperature));
     }
 
     public int getRecordCount() {
