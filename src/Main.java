@@ -72,14 +72,21 @@ public class Main {
                 }
 
                 // 🔹 Transformer
+                String temperatureJSON;
                 double temperature;
                 try {
-                    temperature = transformer.voltageToTemperature(sampled);
-                    System.out.println("Temperature (C): " + temperature);
+                    temperatureJSON = transformer.voltageToTemperatureJSON(sampled);
+                    System.out.println("Temperature JSON: " + temperatureJSON);
+
+                    // Extract temperature for API/DB
+                    temperature = Double.parseDouble(
+                            temperatureJSON.replaceAll("[^0-9.]", "")
+                    );
+
                 } catch (Exception e) {
                     System.out.println("Transformer failure detected. Restarting transformer...");
                     transformer = new Transformer();
-                    Thread.sleep(3000);
+                    Thread.sleep(1000);
                     continue;
                 }
 
