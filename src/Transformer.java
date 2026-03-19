@@ -15,5 +15,9 @@ public class Transformer {
 
         // Return JSON string
         return String.format("{\"temperature\": %.2f}", temperature);
+            if (voltage < 0 || voltage > 5) {
+            throw new IllegalArgumentException("Voltage out of range: 0-5V allowed");
+        }
+        return (voltage / 5.0) * 100.0;
     }
 }
