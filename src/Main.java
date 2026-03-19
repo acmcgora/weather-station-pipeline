@@ -3,39 +3,74 @@ import database.Database;
 import sensor.Sensor;
 import transformer.Transformer;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
 
 public class Main {
 
-    // 🔹 Send voltage to Node.js Sampler
-    public static double sendToNodeSampler(double voltage) throws Exception {
-        java.net.URL url = new java.net.URL("http://localhost:8080/sample");
-        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+    // 🔹 Send voltage to Node.js Sampler if available
+    public static Double sendToNodeSampler(double voltage) {
+        try {
+            URL url = new URL("http://localhost:8080/sample");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
 
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setDoOutput(true);
+            String json = String.format(
+                    "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
+                    "sensor-001",
+                    DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
+                    voltage
+            );
 
-        String json = String.format(
-                "{ \"sensorId\": \"%s\", \"timestamp\": \"%s\", \"voltage\": %.2f }",
-                "sensor-001",
-                DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
-                voltage
-        );
+            conn.getOutputStream().write(json.getBytes());
 
-        try (java.io.OutputStream os = conn.getOutputStream()) {
-            os.write(json.getBytes());
+            Scanner scanner = new Scanner(conn.getInputStream());
+            String response = scanner.useDelimiter("\\A").next();
+            scanner.close();
+
+            String key = "\"sampledVoltage\":";
+            int start = response.indexOf(key) + key.length();
+            int end = response.indexOf("}", start);
+            return Double.parseDouble(response.substring(start, end));
+
+        } catch (IOException e) {
+            System.out.println("Node.js sampler not reachable, using local value.");
+            return null; // fallback
         }
+    }
 
-        java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream());
-        String response = scanner.useDelimiter("\\A").next();
-        scanner.close();
+    // 🔹 Send voltage to Flask Transformer if available
+    public static Double sendToTransformer(double voltage) {
+        try {
+            URL url = new URL("http://localhost:5001/transform");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
 
-        String key = "\"sampledVoltage\":";
-        int start = response.indexOf(key) + key.length();
-        int end = response.indexOf("}", start);
-        return Double.parseDouble(response.substring(start, end));
+            String json = String.format("{ \"voltage\": %.2f }", voltage);
+            conn.getOutputStream().write(json.getBytes());
+
+            Scanner scanner = new Scanner(conn.getInputStream());
+            String response = scanner.useDelimiter("\\A").next();
+            scanner.close();
+
+            String key = "\"temperature\":";
+            int start = response.indexOf(key) + key.length();
+            int end = response.indexOf("}", start);
+
+            return Double.parseDouble(response.substring(start, end));
+
+        } catch (IOException e) {
+            System.out.println("Flask transformer not reachable, using local conversion.");
+            return null; // fallback
+        }
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -62,32 +97,25 @@ public class Main {
 
                 String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 
-                // 🔹 Transformer
-                double temperature;
-                if (maxCycles > 0) {
-                    // Use local Transformer during CI
-                    temperature = transformer.voltageToTemperature(voltage);
-                    System.out.println("CI detected — using local transformer.");
-                } else {
-                    // Call Flask service (optional if integrated)
-                    temperature = transformer.voltageToTemperature(voltage); // or sendToTransformer(voltage)
-                }
+                // 🔹 Sampler: try Node.js first
+                Double sampled = sendToNodeSampler(voltage);
+                if (sampled == null) sampled = voltage;
+
+                // 🔹 Transformer: try Flask first
+                Double temperature = sendToTransformer(sampled);
+                if (temperature == null) temperature = transformer.voltageToTemperature(sampled);
 
                 System.out.println("Temperature (C): " + temperature);
 
-                // 🔹 JSON input/output logging
+                // 🔹 JSON logging
                 System.out.println("#JSON input { \"sensorId\": \"sensor-001\", \"timestamp\": \"" 
                         + timestamp + "\", \"voltage\": " + voltage + " }");
                 System.out.println("#JSON output { \"sensorId\": \"sensor-001\", \"timestamp\": \"" 
-                        + timestamp + "\", \"sampledVoltage\": " + voltage + " }");
+                        + timestamp + "\", \"sampledVoltage\": " + sampled + " }");
 
-                // 🔹 API
-                try { api.send(temperature); } 
-                catch (Exception e) { System.out.println("API send failed."); }
-
-                // 🔹 Database
-                try { database.save(temperature); } 
-                catch (Exception e) { System.out.println("DB save failed."); }
+                // 🔹 API & Database
+                try { api.send(temperature); } catch (Exception e) { System.out.println("API send failed."); }
+                try { database.save(temperature); } catch (Exception e) { System.out.println("DB save failed."); }
 
             } catch (Exception e) {
                 System.out.println("Unexpected pipeline error: " + e.getMessage());
