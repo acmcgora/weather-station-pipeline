@@ -10,7 +10,7 @@ def client():
     return app.test_client()
 
 def test_voltage_to_temperature(client):
-     """
+    """
     Test the /transform endpoint with a valid voltage.
     Expect the temperature to be calculated correctly.
     """
