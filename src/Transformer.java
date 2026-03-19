@@ -13,7 +13,7 @@ public class Transformer {
 
         double temperature = (voltage / 5.0) * 100.0;
 
-        // Return JSON string without any library
+        // Return JSON string
         return String.format("{\"temperature\": %.2f}", temperature);
     }
 }
