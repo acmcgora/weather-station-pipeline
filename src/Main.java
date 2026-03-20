@@ -40,7 +40,6 @@ public class Main {
             return Double.parseDouble(response.substring(start, end));
 
         } catch (IOException e) {
-            System.out.println("Node.js sampler not reachable, using local value.");
             return null; // fallback
         }
     }
@@ -68,7 +67,6 @@ public class Main {
             return Double.parseDouble(response.substring(start, end));
 
         } catch (IOException e) {
-            System.out.println("Flask transformer not reachable, using local conversion.");
             return null; // fallback
         }
     }
@@ -84,8 +82,10 @@ public class Main {
         String ciCyclesEnv = System.getenv("CI_CYCLES");
         int maxCycles = ciCyclesEnv != null ? Integer.parseInt(ciCyclesEnv) : -1;
 
+        boolean isCI = maxCycles > 0;
+
         int cycles = 0;
-        int sleepTime = (maxCycles > 0) ? 200 : 1000;
+        int sleepTime = isCI ? 200 : 1000;
 
         System.out.println("CI_CYCLES=" + ciCyclesEnv + "  maxCycles=" + maxCycles);
 
@@ -97,27 +97,38 @@ public class Main {
 
                 String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 
-                // 🔹 Sampler: try Node.js first
-                Double sampled = sendToNodeSampler(voltage);
-
-                if (sampled == null) {
-                    System.out.println("Using LOCAL sampler");
+                // 🔹 Sampler: try Node.js first unless CI mode
+                Double sampled;
+                if (isCI) {
                     sampled = voltage;
+                    System.out.println("Using LOCAL sampler (CI mode)");
                 } else {
-                    System.out.println("Using EXTERNAL Node.js sampler");
+                    sampled = sendToNodeSampler(voltage);
+                    if (sampled == null) {
+                        sampled = voltage;
+                        System.out.println("Using LOCAL sampler");
+                    } else {
+                        System.out.println("Using EXTERNAL Node.js sampler");
+                    }
                 }
 
-                // 🔹 Transformer: try Flask first
-                Double temperature = sendToTransformer(sampled);
-
-                if (temperature == null) {
-                    System.out.println("Using LOCAL Java transformer");
+                // 🔹 Transformer: try Flask first unless CI mode
+                Double temperature;
+                if (isCI) {
                     temperature = transformer.voltageToTemperature(sampled);
+                    System.out.println("Using LOCAL Java transformer (CI mode)");
                 } else {
-                    System.out.println("Using EXTERNAL Flask transformer");
+                    temperature = sendToTransformer(sampled);
+                    if (temperature == null) {
+                        temperature = transformer.voltageToTemperature(sampled);
+                        System.out.println("Using LOCAL Java transformer");
+                    } else {
+                        System.out.println("Using EXTERNAL Flask transformer");
+                    }
                 }
 
-                temperature = Math.round(temperature * 10.0) / 10.0;//Rounding to 1 decimal point
+                // 🔹 Round temperature to 1 decimal point
+                temperature = Math.round(temperature * 10.0) / 10.0;
                 System.out.println("Temperature (C): " + temperature + " °C");
 
                 // 🔹 JSON logging
