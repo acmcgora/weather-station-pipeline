@@ -82,10 +82,8 @@ public class Main {
         String ciCyclesEnv = System.getenv("CI_CYCLES");
         int maxCycles = ciCyclesEnv != null ? Integer.parseInt(ciCyclesEnv) : -1;
 
-        boolean isCI = maxCycles > 0;
-
         int cycles = 0;
-        int sleepTime = isCI ? 200 : 1000;
+        int sleepTime = (maxCycles > 0) ? 200 : 1000;
 
         System.out.println("CI_CYCLES=" + ciCyclesEnv + "  maxCycles=" + maxCycles);
 
@@ -97,37 +95,25 @@ public class Main {
 
                 String timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 
-                // 🔹 Sampler: try Node.js first unless CI mode
-                Double sampled;
-                if (isCI) {
+                // 🔹 Sampler: try Node.js first
+                Double sampled = sendToNodeSampler(voltage);
+                if (sampled != null) {
+                    System.out.println("Using EXTERNAL Node.js sampler");
+                } else {
                     sampled = voltage;
-                    System.out.println("Using LOCAL sampler (CI mode)");
-                } else {
-                    sampled = sendToNodeSampler(voltage);
-                    if (sampled == null) {
-                        sampled = voltage;
-                        System.out.println("Using LOCAL sampler");
-                    } else {
-                        System.out.println("Using EXTERNAL Node.js sampler");
-                    }
+                    System.out.println("Using LOCAL sampler");
                 }
 
-                // 🔹 Transformer: try Flask first unless CI mode
-                Double temperature;
-                if (isCI) {
+                // 🔹 Transformer: try Flask first
+                Double temperature = sendToTransformer(sampled);
+                if (temperature != null) {
+                    System.out.println("Using EXTERNAL Flask transformer");
+                } else {
                     temperature = transformer.voltageToTemperature(sampled);
-                    System.out.println("Using LOCAL Java transformer (CI mode)");
-                } else {
-                    temperature = sendToTransformer(sampled);
-                    if (temperature == null) {
-                        temperature = transformer.voltageToTemperature(sampled);
-                        System.out.println("Using LOCAL Java transformer");
-                    } else {
-                        System.out.println("Using EXTERNAL Flask transformer");
-                    }
+                    System.out.println("Using LOCAL Java transformer");
                 }
 
-                // 🔹 Round temperature to 1 decimal point
+                // 🔹 Round to 1 decimal point
                 temperature = Math.round(temperature * 10.0) / 10.0;
                 System.out.println("Temperature (C): " + temperature + " °C");
 
