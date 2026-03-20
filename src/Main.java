@@ -99,11 +99,23 @@ public class Main {
 
                 // 🔹 Sampler: try Node.js first
                 Double sampled = sendToNodeSampler(voltage);
-                if (sampled == null) sampled = voltage;
+
+                if (sampled == null) {
+                    System.out.println("Using LOCAL sampler");
+                    sampled = voltage;
+                } else {
+                    System.out.println("Using EXTERNAL Node.js sampler");
+                }
 
                 // 🔹 Transformer: try Flask first
                 Double temperature = sendToTransformer(sampled);
-                if (temperature == null) temperature = transformer.voltageToTemperature(sampled);
+
+                if (temperature == null) {
+                    System.out.println("Using LOCAL Java transformer");
+                    temperature = transformer.voltageToTemperature(sampled);
+                } else {
+                    System.out.println("Using EXTERNAL Flask transformer");
+                }
 
                 temperature = Math.round(temperature * 10.0) / 10.0;//Rounding to 1 decimal point
                 System.out.println("Temperature (C): " + temperature + " °C");
