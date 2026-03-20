@@ -42,7 +42,7 @@ jobs:
       - name: Start Node.js sampler
         working-directory: src/sampler
         run: |
-          nohup node Node.js &   # 🔥 CHANGE this if your file name is different
+          nohup node Node.js & 
           sleep 3
 
       # Step 7: Set up Python
@@ -67,7 +67,7 @@ jobs:
 
       # Step 10: Run Java pipeline (uses services)
       - name: Run Java Weather Station Pipeline
-        run: java -cp out Main
+        run: CI_CYCLES=6 java -cp out Main
 
       # Step 11: Run Java pipeline (local fallback)
       - name: Run Java Weather Station Pipeline (CI mode)
