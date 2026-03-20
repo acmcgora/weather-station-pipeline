@@ -105,6 +105,7 @@ public class Main {
                 Double temperature = sendToTransformer(sampled);
                 if (temperature == null) temperature = transformer.voltageToTemperature(sampled);
 
+                temperature = Math.round(temperature * 10.0) / 10.0;//Rounding to 1 decimal point
                 System.out.println("Temperature (C): " + temperature + " °C");
 
                 // 🔹 JSON logging
