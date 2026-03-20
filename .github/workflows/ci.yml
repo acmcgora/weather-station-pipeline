@@ -65,13 +65,9 @@ jobs:
           nohup python Flaskapp.py &
           sleep 3
 
-      # Step 10: Run Java pipeline (uses services)
+      # Step 10: Run Java pipeline (uses services and shows local)
       - name: Run Java Weather Station Pipeline
         run: CI_CYCLES=6 java -cp out Main
-
-      # Step 11: Run Java pipeline (local fallback)
-      - name: Run Java Weather Station Pipeline (CI mode)
-        run: CI_CYCLES=5 java -cp out Main
 
       # Step 12: Run Node.js unit tests
       - name: Run Sampler unit tests
