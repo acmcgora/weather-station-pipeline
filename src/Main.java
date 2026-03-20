@@ -115,7 +115,7 @@ public class Main {
 
                 // 🔹 API & Database
                 try { api.send(temperature); } catch (Exception e) { System.out.println("API send failed."); }
-                try { database.save(temperature+ " °C"); } catch (Exception e) { System.out.println("DB save failed."); }
+                try { database.save(temperature+); } catch (Exception e) { System.out.println("DB save failed."); }
 
             } catch (Exception e) {
                 System.out.println("Unexpected pipeline error: " + e.getMessage());
