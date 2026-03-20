@@ -38,13 +38,12 @@ jobs:
         working-directory: src/sampler
         run: npm install
 
-      # Step 6: Start Node.js sampler in background
+      # Step 6: Start Node.js sampler
       - name: Start Node.js sampler
         working-directory: src/sampler
         run: |
-          nohup npx jest &  # if you have tests
-          nohup node Node.js &  # replace with your sampler entrypoint
-          sleep 3  # wait for server to start
+          nohup node Node.js &   # 🔥 CHANGE this if your file name is different
+          sleep 3
 
       # Step 7: Set up Python
       - name: Set up Python
@@ -59,23 +58,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install flask pytest
 
-      # Step 9: Start Flask Transformer in background
+      # Step 9: Start Flask Transformer
       - name: Start Flask Transformer
         working-directory: src/transformer
         run: |
-          nohup python Flaskapp.py &  
-          sleep 3  # wait for server to start
+          nohup python Flaskapp.py &
+          sleep 3
 
-      # Step 10: Run Java pipeline
+      # Step 10: Run Java pipeline (uses services)
       - name: Run Java Weather Station Pipeline
+        run: java -cp out Main
+
+      # Step 11: Run Java pipeline (local fallback)
+      - name: Run Java Weather Station Pipeline (CI mode)
         run: CI_CYCLES=5 java -cp out Main
 
-      # Step 11: Run Node.js unit tests
+      # Step 12: Run Node.js unit tests
       - name: Run Sampler unit tests
         working-directory: src/sampler
         run: npx jest
 
-      # Step 12: Run Python Transformer unit tests
+      # Step 13: Run Python Transformer unit tests
       - name: Run Transformer unit tests
         working-directory: tests
         run: pytest
