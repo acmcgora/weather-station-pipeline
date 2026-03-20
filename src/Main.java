@@ -105,7 +105,7 @@ public class Main {
                 Double temperature = sendToTransformer(sampled);
                 if (temperature == null) temperature = transformer.voltageToTemperature(sampled);
 
-                System.out.println("Temperature (C): " + temperature);
+                System.out.println("Temperature (C): " + temperature + " °C");
 
                 // 🔹 JSON logging
                 System.out.println("#JSON input { \"sensorId\": \"sensor-001\", \"timestamp\": \"" 
@@ -115,7 +115,7 @@ public class Main {
 
                 // 🔹 API & Database
                 try { api.send(temperature); } catch (Exception e) { System.out.println("API send failed."); }
-                try { database.save(temperature); } catch (Exception e) { System.out.println("DB save failed."); }
+                try { database.save(temperature+ " °C"); } catch (Exception e) { System.out.println("DB save failed."); }
 
             } catch (Exception e) {
                 System.out.println("Unexpected pipeline error: " + e.getMessage());
