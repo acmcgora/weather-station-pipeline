@@ -15,7 +15,7 @@ jobs:
       # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
-        
+
       # Step 2: Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -26,6 +26,10 @@ jobs:
       # Step 3: Compile Java
       - name: Compile Java
         run: javac -d out $(find src -name "*.java")
+
+      # 🔹 Run pipeline locally first (no Node.js / Flask)
+      - name: Run Java pipeline (LOCAL)
+        run: CI_CYCLES=4 java -cp out Main
 
       # Step 4: Set up Node.js
       - name: Set up Node.js
@@ -65,16 +69,16 @@ jobs:
           nohup python Flaskapp.py &
           sleep 3
 
-      # Step 10: Run Java pipeline (uses services and shows local)
-      - name: Run Java Weather Station Pipeline
-        run: CI_CYCLES=8 java -cp out Main
+      # 🔹 Run pipeline again with external services
+      - name: Run Java pipeline (EXTERNAL)
+        run: CI_CYCLES=4 java -cp out Main
 
-      # Step 12: Run Node.js unit tests
+      # Step 10: Run Node.js unit tests
       - name: Run Sampler unit tests
         working-directory: src/sampler
         run: npx jest
 
-      # Step 13: Run Python Transformer unit tests
+      # Step 11: Run Python Transformer unit tests
       - name: Run Transformer unit tests
         working-directory: tests
         run: pytest
