@@ -15,7 +15,7 @@ services:
       - mysql-data:/var/lib/mysql
 
   rest-api:
-    build: ./src/rest-api    # Path to your REST API Dockerfile
+    build: ./src/RestAPI    # Path to your REST API Dockerfile
     container_name: weather-station-api
     ports:
       - "5000:5000"
