@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 public class RestAPI {
 
     // Update these to match your local database
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/Weather";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/weather";
     private static final String DB_USER = "user";
     private static final String DB_PASSWORD = "password";
 
