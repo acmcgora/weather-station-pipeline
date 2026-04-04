@@ -1,13 +1,13 @@
-# Base image with Java
-FROM openjdk:17
+# Base Java image
+FROM openjdk:17-jdk
 
-# Working directory inside the container
+# Working directory inside container
 WORKDIR /app
 
-# Copy all source code
+# Copy all Java source files into container
 COPY . .
 
-# Compile Java files
+# Compile all Java files
 RUN javac *.java
 
 # Run the main class
