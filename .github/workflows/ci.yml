@@ -11,6 +11,22 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: weather
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+
     steps:
       # Step 1: Checkout repository
       - name: Checkout repository
@@ -27,58 +43,58 @@ jobs:
       - name: Compile Java
         run: javac -d out $(find src -name "*.java")
 
-      # 🔹 Run pipeline locally first (no Node.js / Flask)
+      # Step 4: Run Java pipeline locally first (no external services)
       - name: Run Java pipeline (LOCAL)
         run: CI_CYCLES=4 java -cp out Main
 
-      # Step 4: Set up Node.js
+      # Step 5: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # Step 5: Install Node.js dependencies
+      # Step 6: Install Node.js dependencies
       - name: Install Node.js dependencies
         working-directory: src/sampler
         run: npm install
 
-      # Step 6: Start Node.js sampler
+      # Step 7: Start Node.js sampler
       - name: Start Node.js sampler
         working-directory: src/sampler
         run: |
-          nohup node Node.js & 
+          nohup node Node.js &
           sleep 3
 
-      # Step 7: Set up Python
+      # Step 8: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Step 8: Install Python dependencies
+      # Step 9: Install Python dependencies
       - name: Install Python dependencies
         working-directory: src/transformer
         run: |
           python -m pip install --upgrade pip
           pip install flask pytest
 
-      # Step 9: Start Flask Transformer
+      # Step 10: Start Flask Transformer
       - name: Start Flask Transformer
         working-directory: src/transformer
         run: |
           nohup python Flaskapp.py &
           sleep 3
 
-      # 🔹 Run pipeline again with external services
+      # Step 11: Run Java pipeline with external services (Node.js + Flask + MySQL)
       - name: Run Java pipeline (EXTERNAL)
         run: CI_CYCLES=4 java -cp out Main
 
-      # Step 10: Run Node.js unit tests
+      # Step 12: Run Node.js unit tests
       - name: Run Sampler unit tests
         working-directory: src/sampler
         run: npx jest
 
-      # Step 11: Run Python Transformer unit tests
+      # Step 13: Run Python Transformer unit tests
       - name: Run Transformer unit tests
         working-directory: tests
         run: pytest
