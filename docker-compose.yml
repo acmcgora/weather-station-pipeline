@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # MySQL database service
+  db:
+    image: mysql:8.0
+    container_name: weather_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword   # root password
+      MYSQL_DATABASE: weather_db          # database created on startup
+      MYSQL_USER: weather_user            # user created on startup
+      MYSQL_PASSWORD: weather_pass        # password for user
+    ports:
+      - "3306:3306"                       # exposed to host machine
+    volumes:
+      - db_data:/var/lib/mysql            # persist database data
+
+  # REST API service
+  rest-api:
+    build: ./rest-api                      # path to your REST API Dockerfile
+    depends_on:
+      - db                                # wait for DB to start first
+    environment:
+      DB_HOST: db
+      DB_NAME: weather_db
+      DB_USER: weather_user
+      DB_PASS: weather_pass
+    ports:
+      - "5000:5000"                        # expose REST API on host
+
+volumes:
+  db_data:
