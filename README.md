@@ -46,6 +46,6 @@ The Sensor generates raw voltage data.
 The Sampler collects the readings.
 The Transformer converts voltage into temperature values.
 The REST API simulates receiving processed data.
-The Database stores the final results. The database is run on the users local machine and will not show up in the actions piece.
+The database stores final results locally using MySQL. It is not used in the GitHub Actions pipeline because the CI environment does not include a database service or JDBC driver to connect from actions, so only local executions of the program will keep the data.
 
 Keeping these modules separate helps lessen the impact of faults in one module and allows independent testing and maintenance.
