@@ -32,10 +32,14 @@ def temperature():
     )
     conn.commit()
 
+    insert_id = cur.lastrowid
+
+    cur.close()
+    conn.close()
+
     return jsonify({
         "status": "stored",
-        "id": cur.lastrowid,
+        "id": insert_id,
         "temperature_c": temp,
         "timestamp": ts
     }), 201
- 
