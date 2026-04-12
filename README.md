@@ -49,3 +49,24 @@ The REST API simulates receiving processed data.
 The database stores final results locally using MySQL. It is not used in the GitHub Actions pipeline because the CI environment does not include a database service or JDBC driver to connect from actions, so only local executions of the program will keep the data.
 
 Keeping these modules separate helps lessen the impact of faults in one module and allows independent testing and maintenance.
+
+### Assignment 4 - REST API Design and Implementation
+#### Endpoint
+POST /temperature
+
+#### Input JSON Example
+{
+  "temperature_c": 24.5,
+  "timestamp": "2026-03-10T14:20:00Z"
+}
+
+#### Output JSON Example
+{
+  "status": "stored",
+  "id": 104,
+  "temperature_c": 24.5,
+  "timestamp": "2026-03-10T14:20:00Z"
+}
+
+#### Design Explanation
+The REST API uses a single POST endpoint to keep the interface simple and focused on receiving temperature readings from the Transformer. We used JSON because it's human‑readable and easy for both Python and Java components to generate. The API validates incoming data, assigns a timestamp when one is missing, and returns a confirmation response so services can verify that it stored correctly. This design keeps the service predictable and easy to integrate into the pipeline.
